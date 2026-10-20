@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tesla Fleet Chat — Live Demo (POC)</title>
+<meta name="description" content="Chat with your Teslas through any OpenAI client. Interactive proof-of-concept demo of tesla-fleet-chat: an OpenAI-compatible API server over the official Tesla Fleet API.">
+<style>
+  :root { --bg:#0b0e13; --panel:#141922; --line:#232c3a; --text:#e8edf4; --muted:#93a1b5; --red:#e82127; --green:#37d67a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width:860px; margin:0 auto; padding:24px 16px 64px; }
+  header { text-align:center; padding:28px 0 8px; }
+  h1 { font-size:2rem; margin:0 0 8px; }
+  h1 .red { color:var(--red); }
+  .sub { color:var(--muted); max-width:640px; margin:0 auto; line-height:1.55; }
+  .badge { display:inline-block; margin-top:14px; padding:4px 12px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.82rem; }
+  .badge b { color:var(--green); }
+  .cars { display:flex; gap:12px; flex-wrap:wrap; margin:26px 0 14px; }
+  .car { flex:1 1 240px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .car h3 { margin:0 0 8px; font-size:1.05rem; }
+  .bar { height:10px; background:#0d1117; border-radius:6px; overflow:hidden; margin:6px 0 10px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,#1fae55,var(--green)); }
+  .kv { color:var(--muted); font-size:.9rem; line-height:1.6; }
+  .kv b { color:var(--text); font-weight:600; }
+  .chat { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:18px; }
+  .chat-head { padding:12px 16px; border-bottom:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+  .msgs { padding:16px; min-height:220px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:82%; padding:10px 14px; border-radius:12px; line-height:1.5; font-size:.97rem; white-space:pre-wrap; }
+  .msg.user { align-self:flex-end; background:#1d2a3d; }
+  .msg.bot { align-self:flex-start; background:#0d1117; border:1px solid var(--line); }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 12px; }
+  .chip { border:1px solid var(--line); background:transparent; color:var(--text); border-radius:999px; padding:6px 12px; cursor:pointer; font-size:.88rem; }
+  .chip:hover { border-color:var(--red); }
+  form { display:flex; gap:8px; padding:12px 16px 16px; border-top:1px solid var(--line); }
+  input[type=text] { flex:1; background:#0d1117; border:1px solid var(--line); border-radius:10px; color:var(--text); padding:11px 12px; font-size:1rem; }
+  button.send { background:var(--red); border:none; color:#fff; border-radius:10px; padding:0 18px; font-size:1rem; cursor:pointer; }
+  .note { color:var(--muted); font-size:.86rem; text-align:center; margin-top:12px; line-height:1.6; }
+  a { color:#6db3ff; }
+  code { background:#0d1117; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tesla <span class="red">Fleet Chat</span></h1>
+    <p class="sub">Your Teslas, exposed as an <b>OpenAI-compatible API endpoint</b>. Ask questions, give commands —
+    from any OpenAI client. This page is a live proof-of-concept running the real rules engine in your
+    browser against a pretend fleet.</p>
+    <span class="badge">● DEMO DATA — no real cars here · <a href="https://github.com/rtmalikian/tesla-fleet-chat">Get the free app on GitHub</a></span>
+  </header>
+
+  <div class="cars">
+    <div class="car">
+      <h3>🚗 Model Y <span class="kv">(demo)</span></h3>
+      <div class="bar"><i id="ybar" style="width:82%"></i></div>
+      <div class="kv">Battery <b id="ylevel">82%</b> · <b id="ycharge">Disconnected</b><br>
+      Climate <b>off</b> (inside 24°C) · Sentry <b id="ysentry">off</b> · Locked · 18,420 mi</div>
+    </div>
+    <div class="car">
+      <h3>🚙 Model 3 <span class="kv">(demo)</span></h3>
+      <div class="bar"><i style="width:47%"></i></div>
+      <div class="kv">Battery <b>47%</b> · <b>Charging</b><br>
+      Climate <b>off</b> (inside 24°C) · Sentry <b>off</b> · Locked · 32,110 mi</div>
+    </div>
+  </div>
+
+  <div class="chat">
+    <div class="chat-head">POST /v1/chat/completions — model: <code>tesla-fleet-chat</code></div>
+    <div class="msgs" id="msgs">
+      <div class="msg bot">Hi! I'm connected to two (pretend) Teslas. Ask me about battery, charging, temperature — or tell me to start charging the Model Y.</div>
+    </div>
+    <div class="chips">
+      <button class="chip" onclick="ask('Which car has more battery?')">Which car has more battery?</button>
+      <button class="chip" onclick="ask('Is the Model 3 charging?')">Is the Model 3 charging?</button>
+      <button class="chip" onclick="ask('Start charging the Model Y')">Start charging the Model Y</button>
+      <button class="chip" onclick="ask('Turn on sentry on the Model Y')">Turn on sentry on the Model Y</button>
+      <button class="chip" onclick="ask('Status of everything?')">Status of everything?</button>
+    </div>
+    <form onsubmit="submitForm(event)">
+      <input type="text" id="q" placeholder="Ask or command…" autocomplete="off">
+      <button class="send" type="submit">Send</button>
+    </form>
+  </div>
+
+  <p class="note">The real app answers from your actual cars via the official Tesla Fleet API, runs commands
+  (charging, preconditioning, sentry) through a strict allowlist, and can plug into a local LLM
+  (Ollama) or any OpenAI-compatible service for free-form questions. Vehicle data goes only to the
+  backend <i>you</i> choose.<br><br>
+  <a href="https://github.com/rtmalikian/tesla-fleet-chat">github.com/rtmalikian/tesla-fleet-chat</a> — MIT, free forever.
+  Setup takes minutes: <code>tfleet setup</code> asks plain-language questions, no config editing.</p>
+</div>
+
+<script>
+const state = { yCharging: false, ySentry: false };
+const msgs = document.getElementById('msgs');
+function add(text, who) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + who; d.textContent = text; msgs.appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+function answer(raw) {
+  const t = raw.toLowerCase();
+  if (/start|resume|begin/.test(t) && t.includes('charg') && t.includes('y')) {
+    state.yCharging = true;
+    document.getElementById('ycharge').textContent = 'Charging';
+    return 'Ran charge_start on Model Y. (Demo — in the real app this command goes to your car via the Tesla Fleet API.)';
+  }
+  if (/stop|pause/.test(t) && t.includes('charg') && t.includes('y')) {
+    state.yCharging = false;
+    document.getElementById('ycharge').textContent = 'Stopped';
+    return 'Ran charge_stop on Model Y. (Demo)';
+  }
+  if (t.includes('sentry') && t.includes('y') && /on|enable|arm/.test(t)) {
+    state.ySentry = true;
+    document.getElementById('ysentry').textContent = 'on';
+    return 'Ran sentry_on on Model Y. (Demo)';
+  }
+  if (t.includes('which') && (t.includes('battery') || t.includes('charge'))) {
+    return 'Model Y has the most charge at 82% (Model 3 at 47%).';
+  }
+  if (t.includes('battery') || t.includes('%')) {
+    if (t.includes('3')) return 'Model 3 is at 47%.';
+    if (t.includes('y')) return 'Model Y is at 82%.';
+    return 'Model Y: 82%. Model 3: 47%.';
+  }
+  if (t.includes('charging') || t.includes('plugged')) {
+    if (t.includes('3')) return 'Model 3: charging state is Charging.';
+    if (t.includes('y')) return 'Model Y: charging state is ' + (state.yCharging ? 'Charging' : 'Disconnected') + '.';
+    return 'Model Y: ' + (state.yCharging ? 'Charging' : 'Disconnected') + '. Model 3: Charging.';
+  }
+  if (t.includes('temp')) return 'Model Y: inside 24°C, outside 30°C. Model 3: inside 24°C, outside 30°C.';
+  if (t.includes('status') || t.includes('summary') || t.includes('how')) {
+    return 'Model Y: battery 82%, ' + (state.yCharging ? 'charging' : 'disconnected') + ', climate off (inside 24°C), sentry ' + (state.ySentry ? 'on' : 'off') + ', locked, 18,420 mi.\nModel 3: battery 47%, charging, climate off (inside 24°C), sentry off, locked, 32,110 mi.';
+  }
+  return "I can tell you battery levels, charging state, cabin temperatures, lock/sentry status, and odometer — and run: start/stop charging, precondition, sentry on/off. In the full app, an optional local LLM handles free-form questions too.";
+}
+function ask(text) { add(text, 'user'); setTimeout(() => add(answer(text), 'bot'), 250); }
+function submitForm(e) {
+  e.preventDefault();
+  const q = document.getElementById('q');
+  if (q.value.trim()) { ask(q.value.trim()); q.value = ''; }
+}
+</script>
+</body>
+</html>

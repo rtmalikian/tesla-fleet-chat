@@ -4,6 +4,8 @@
 
 Works with Model 3, Model Y, Model S, Model X, and Cybertruck.
 
+▶ **[Try the live demo](https://rtmalikian.github.io/tesla-fleet-chat/)** — chat with a pretend fleet in your browser, no install, no car needed.
+
 ## Why?
 
 Tesla's voice commands only work **inside the car**, and the Tesla app has no conversational interface at all. Meanwhile every AI tool you already use speaks one protocol: the OpenAI API. This app bridges them — your cars become a "model" any OpenAI-compatible client can chat with:
@@ -41,7 +43,7 @@ curl http://127.0.0.1:8642/v1/embeddings \
 ```bash
 git clone https://github.com/rtmalikian/tesla-fleet-chat && cd tesla-fleet-chat
 python3 -m venv .venv && .venv/bin/pip install -e .
-cp .env.example .env    # add your Tesla app credentials + vehicles
+.venv/bin/tfleet setup  # guided setup — plain-language questions, writes .env for you
 .venv/bin/tfleet auth   # one-time Tesla authorization + virtual-key pairing
 .venv/bin/tfleet serve
 # or one-shot, no server:

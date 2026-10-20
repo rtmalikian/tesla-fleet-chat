@@ -1,4 +1,4 @@
-"""CLI: tfleet auth | serve | ask | status | simulate"""
+"""CLI: tfleet setup | auth | serve | ask | status | simulate"""
 from __future__ import annotations
 
 import argparse
@@ -30,6 +30,12 @@ def cmd_auth(args, settings) -> int:
     print("Open this URL in your browser and authorize:")
     print(client.authorize_url())
     print("Virtual-key pairing: https://developer.tesla.com/docs/fleet-api#pairing")
+    return 0
+
+
+def cmd_setup(args, settings) -> int:
+    from .setup import run_setup
+    run_setup()
     return 0
 
 
@@ -90,6 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--env-file", default=None)
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="command", required=True)
+    sub.add_parser("setup", help="Guided first-run setup (plain-language questions)")
     sub.add_parser("auth", help="Authorize with your Tesla account (one-time)")
     sub.add_parser("serve", help="Run the OpenAI-compatible API server")
     ask_p = sub.add_parser("ask", help="One-shot question/answer (no server)")
@@ -117,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         print(f"Config error: {exc}", file=sys.stderr)
         return 2
-    handlers = {"auth": cmd_auth, "serve": cmd_serve, "ask": cmd_ask,
+    handlers = {"setup": cmd_setup, "auth": cmd_auth, "serve": cmd_serve, "ask": cmd_ask,
                 "status": cmd_status, "simulate": cmd_simulate}
     return handlers[args.command](args, settings)
 
